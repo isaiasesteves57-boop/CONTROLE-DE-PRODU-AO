@@ -1,0 +1,16 @@
+{
+  "name": "Controle de Produção",
+  "short_name": "Produção",
+  "description": "Controle industrial de produção: painel do gestor, lançamentos, histórico e capacidade produtiva.",
+  "id": "./home.html",
+  "start_url": "./home.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1526",
+  "theme_color": "#0a1526",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
