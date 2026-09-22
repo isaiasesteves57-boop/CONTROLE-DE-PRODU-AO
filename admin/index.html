@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestor d Trader — Administração</title>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../shared/firebase-config.js"></script>
+<script src="../shared/chat.js"></script>
+<style>body{font-family:Arial,sans-serif;max-width:1100px;margin:auto;padding:20px;background:#f5f6f8;color:#18202a}section{background:white;border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 1px 5px #0001}input,textarea,button,select{padding:10px;margin:5px 0;border:1px solid #ccd2da;border-radius:7px}button{cursor:pointer;background:#1769e0;color:white;border:0}button.danger{background:#c62828}button.secondary{background:#596575}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.client{border:1px solid #ddd;padding:12px;border-radius:8px;margin:8px 0}.muted{color:#667085}.status{font-weight:bold}.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:bold;color:#fff}.badge-ativo{background:#2e7d32}.badge-bloqueado{background:#c62828}.badge-pendente{background:#8a8f98}.badge-vip{background:#b8860b}.badge-free{background:#546e7a}.badge-premium{background:#6a1b9a}.venc-ok{color:#2e7d32;font-weight:bold}.venc-vencido{color:#c62828;font-weight:bold}.client .row{margin:6px 0}.filtros{margin:6px 0 14px}.filtros button{background:#e7ebf0;color:#18202a}.filtros button.ativo{background:#1769e0;color:#fff}table.clientes{width:100%;border-collapse:collapse;font-size:14px}table.clientes th,table.clientes td{text-align:left;padding:8px 6px;border-bottom:1px solid #e5e8ec;vertical-align:top}table.clientes th{color:#667085;font-size:12px;text-transform:uppercase}#salaChat{max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 0}.msg{border:1px solid #e5e8ec;border-radius:8px;padding:8px 10px;max-width:80%}.msg.admin{background:#fff7e6;border-color:#e6d3a3;align-self:flex-end}.msg .meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#667085;margin-bottom:3px}.msg .del{cursor:pointer;background:none;border:0;color:#c62828;padding:0;font-size:12px}</style>
+</head>
+<body>
+<h1>Gestor d Trader — Painel administrativo</h1>
+<p id="session" class="muted">Verificando sessão...</p>
+<section id="loginBox"><h2>Entrar</h2><input id="email" type="email" placeholder="E-mail"><br><input id="password" type="password" placeholder="Senha"><br><button id="login">Entrar</button><p id="loginMsg"></p></section>
+<main id="panel" hidden>
+<section><h2>👥 Gerenciamento de Clientes</h2><p class="muted">Lista em tempo real. Ative, bloqueie ou libere cada conta. Defina o plano (free/vip/premium) e a validade do acesso — o cliente é bloqueado automaticamente ao vencer.</p>
+<div class="row filtros" id="filtros">
+  <button data-filtro="todos" class="ativo">Todos</button>
+  <button data-filtro="ativos">Ativos</button>
+  <button data-filtro="bloqueados">Bloqueados</button>
+  <button data-filtro="expirados">Expirados</button>
+</div>
+<div id="clients">Carregando...</div></section>
+<section><h2>💬 Sala ao vivo</h2><p class="muted">Chat em tempo real com os clientes ativos. Você pode excluir qualquer mensagem (moderação).</p>
+<div id="salaChat">Carregando...</div>
+<div class="row" style="margin-top:10px"><input id="salaInput" placeholder="Escreva uma mensagem…" style="flex:1" maxlength="500"><button id="salaEnviar">Enviar</button></div>
+<p id="salaMsg"></p></section>
+<section><h2>Publicar jogo</h2><div class="row"><input id="home" placeholder="Time da casa"><input id="away" placeholder="Time visitante"><input id="date" type="date"><input id="time" type="time"></div><div class="row"><input id="strategy" placeholder="Estratégia"><input id="entry" placeholder="Entrada"><button id="publish">Publicar jogo</button></div><p id="gameMsg"></p></section>
+<section><h2>Mensagem geral</h2><input id="msgTitle" placeholder="Título"><br><textarea id="msgText" rows="4" style="width:100%" placeholder="Mensagem para os clientes"></textarea><br><button id="sendMsg">Enviar mensagem</button><p id="msgResult"></p></section>
+<button class="secondary" id="logout">Sair</button>
+</main>
+<script>
+firebase.initializeApp(GESTOR_FIREBASE_CONFIG);const auth=firebase.auth(),db=firebase.firestore();
+const $=id=>document.getElementById(id);let current=null;
+let unsubClients=null;let clientesCache=[];let filtroAtual='todos';
+let unsubSala=null;let currentNome='Administrador';
+function show(id,on){$(id).hidden=!on}
+async function isAdmin(user){const s=await db.collection('users').doc(user.uid).get();if(s.exists&&s.data().nome)currentNome=s.data().nome;return s.exists&&s.data().role==='admin'}
+$('login').onclick=async()=>{try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);$('loginMsg').textContent='';}catch(e){$('loginMsg').textContent='Não foi possível entrar: '+e.message}}
+auth.onAuthStateChanged(async user=>{current=user; if(unsubClients){unsubClients();unsubClients=null} if(unsubSala){unsubSala();unsubSala=null} if(!user){show('loginBox',true);show('panel',false);$('session').textContent='Sessão não iniciada';return}try{if(!(await isAdmin(user)))throw Error('Esta conta não possui permissão de administrador.');show('loginBox',false);show('panel',true);$('session').textContent='Administrador: '+user.email;iniciarListaClientes();iniciarSalaChat()}catch(e){$('session').textContent=e.message;await auth.signOut()}});
+function iniciarSalaChat(){
+  if(typeof window.ouvirSalaAoVivo!=='function'){$('salaChat').textContent='Módulo da sala ao vivo não carregado.';return}
+  unsubSala=window.ouvirSalaAoVivo(msgs=>renderSala(msgs));
+}
+function renderSala(msgs){
+  const box=$('salaChat');box.innerHTML='';
+  if(msgs.length===0){box.textContent='Nenhuma mensagem ainda.';return}
+  msgs.forEach(m=>{
+    const div=document.createElement('div');div.className='msg'+(m.role==='admin'?' admin':'');
+    div.innerHTML=`<div class="meta"><span>${m.role==='admin'?'🛡 ':''}${esc(m.nome||'Trader')}</span><button class="del" title="Excluir">✕</button></div><div>${esc(m.texto||'')}</div>`;
+    div.querySelector('.del').onclick=async()=>{if(confirm('Excluir esta mensagem?')){try{await window.excluirMensagemSala(m.id)}catch(e){alert(e.message)}}};
+    box.appendChild(div);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+$('salaEnviar').onclick=async()=>{
+  const texto=$('salaInput').value.trim();if(!texto)return;
+  try{await window.enviarMensagemSala(current.uid,currentNome,'admin',texto);$('salaInput').value='';$('salaMsg').textContent='';}catch(e){$('salaMsg').textContent='Erro: '+e.message}
+};
+$('salaInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('salaEnviar').click();}});
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function fmtData(v){return v?String(v).split('-').reverse().join('/'):'—'}
+function vencido(v){return !!v && v<todayStr()}
+function iniciarListaClientes(){
+  unsubClients=db.collection('users').where('role','==','cliente').onSnapshot(snap=>{
+    clientesCache=snap.docs.map(doc=>({uid:doc.id,...doc.data()}));
+    renderClients();
+  },err=>{$('clients').textContent='Erro ao carregar clientes: '+err.message});
+}
+document.querySelectorAll('#filtros button').forEach(btn=>{
+  btn.onclick=()=>{filtroAtual=btn.dataset.filtro;document.querySelectorAll('#filtros button').forEach(b=>b.classList.toggle('ativo',b===btn));renderClients();}
+});
+function passaFiltro(u){
+  const status=u.status||'pendente';
+  const venc=u.data_vencimento||'';
+  if(filtroAtual==='ativos')return status==='ativo'&&!vencido(venc);
+  if(filtroAtual==='bloqueados')return status==='bloqueado';
+  if(filtroAtual==='expirados')return status==='ativo'&&vencido(venc);
+  return true;
+}
+function renderClients(){
+  const lista=clientesCache.filter(passaFiltro);
+  $('clients').innerHTML='';
+  if(clientesCache.length===0){$('clients').textContent='Nenhum cliente cadastrado.';return}
+  if(lista.length===0){$('clients').textContent='Nenhum cliente encontrado para este filtro.';return}
+  const table=document.createElement('table');table.className='clientes';
+  table.innerHTML='<thead><tr><th>Nome</th><th>Email</th><th>Plano</th><th>Status</th><th>Validade</th><th>Ações</th></tr></thead>';
+  const tbody=document.createElement('tbody');
+  lista.forEach(u=>{
+    const uid=u.uid;
+    const status=u.status||'pendente';
+    const plano=u.plano||'free';
+    const venc=u.data_vencimento||'';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><strong>${esc(u.nome||'(sem nome)')}</strong></td>
+      <td class="muted">${esc(u.email||uid)}</td>
+      <td>
+        <span class="badge badge-${plano}">${esc(plano)}</span><br>
+        <select data-f="plano"><option value="free"${plano==='free'?' selected':''}>free</option><option value="vip"${plano==='vip'?' selected':''}>vip</option><option value="premium"${plano==='premium'?' selected':''}>premium</option></select>
+      </td>
+      <td><span class="badge badge-${status}">${esc(status)}</span></td>
+      <td>
+        <span class="${vencido(venc)?'venc-vencido':'venc-ok'}">${fmtData(venc)}</span><br>
+        <input type="date" data-f="venc" value="${esc(venc)}">
+      </td>
+      <td>
+        <div class="row">
+          <button data-a="salvar">Salvar plano/validade</button>
+        </div>
+        <div class="row">
+          <button data-a="ativar">🟢 Ativar</button>
+          <button class="danger" data-a="bloquear">🔴 Bloquear</button>
+          <button class="secondary" data-a="liberar">🟢 Liberar</button>
+        </div>
+        <div class="row">
+          <button class="secondary" data-a="mensalidade">Marcar mensalidade ativa</button>
+        </div>
+      </td>`;
+    tr.querySelector('[data-a="salvar"]').onclick=()=>updateClient(uid,{plano:tr.querySelector('[data-f="plano"]').value,data_vencimento:tr.querySelector('[data-f="venc"]').value||null});
+    tr.querySelector('[data-a="ativar"]').onclick=()=>updateClient(uid,{status:'ativo',data_inicio:u.data_inicio||todayStr()});
+    tr.querySelector('[data-a="bloquear"]').onclick=()=>updateClient(uid,{status:'bloqueado'});
+    tr.querySelector('[data-a="liberar"]').onclick=()=>updateClient(uid,{status:'ativo'});
+    tr.querySelector('[data-a="mensalidade"]').onclick=()=>setSubscription(uid);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  $('clients').appendChild(table);
+}
+async function updateClient(uid,data){try{await db.collection('users').doc(uid).update(data)}catch(e){alert(e.message)}}
+async function setSubscription(uid){try{await db.collection('subscriptions').doc(uid).set({status:'ativa',plano:'mensal',atualizadoEm:firebase.firestore.FieldValue.serverTimestamp(),liberadoPor:current.uid},{merge:true});alert('Mensalidade registrada.');}catch(e){alert(e.message)}}
+$('publish').onclick=async()=>{try{const jogo={mandante:$('home').value.trim(),visitante:$('away').value.trim(),data:$('date').value,horario:$('time').value,estrategia:$('strategy').value.trim(),entrada:$('entry').value.trim(),status:'publicado',dataOrdem:Date.now(),publicadoPor:current.uid,publicadoEm:firebase.firestore.FieldValue.serverTimestamp()};if(!jogo.mandante||!jogo.visitante)throw Error('Informe os dois times.');await db.collection('jogosPublicados').add(jogo);$('gameMsg').textContent='Jogo publicado com sucesso.';}catch(e){$('gameMsg').textContent='Erro: '+e.message}}
+$('sendMsg').onclick=async()=>{try{await db.collection('mensagens').add({titulo:$('msgTitle').value.trim(),texto:$('msgText').value.trim(),destinatarioUid:null,ativa:true,enviadaEm:firebase.firestore.FieldValue.serverTimestamp(),enviadaPor:current.uid});$('msgResult').textContent='Mensagem enviada.';}catch(e){$('msgResult').textContent='Erro: '+e.message}}
+$('logout').onclick=()=>auth.signOut();
+</script></body></html>
