@@ -38,7 +38,7 @@ let unsubClients=null;let clientesCache=[];let filtroAtual='todos';
 let unsubSala=null;let currentNome='Administrador';
 function show(id,on){$(id).hidden=!on}
 async function isAdmin(user){const s=await db.collection('users').doc(user.uid).get();if(s.exists&&s.data().nome)currentNome=s.data().nome;return s.exists&&s.data().role==='admin'}
-$('login').onclick=async()=>{try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);$('loginMsg').textContent='';}catch(e){$('loginMsg').textContent='Não foi possível entrar: '+e.message}}
+async function login(){try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);$('loginMsg').textContent='';}catch(e){$('loginMsg').textContent='Não foi possível entrar: '+e.message}}
 auth.onAuthStateChanged(async user=>{current=user; if(unsubClients){unsubClients();unsubClients=null} if(unsubSala){unsubSala();unsubSala=null} if(!user){show('loginBox',true);show('panel',false);$('session').textContent='Sessão não iniciada';return}try{if(!(await isAdmin(user)))throw Error('Esta conta não possui permissão de administrador.');show('loginBox',false);show('panel',true);$('session').textContent='Administrador: '+user.email;iniciarListaClientes();iniciarSalaChat()}catch(e){$('session').textContent=e.message;await auth.signOut()}});
 function iniciarSalaChat(){
   if(typeof window.ouvirSalaAoVivo!=='function'){$('salaChat').textContent='Módulo da sala ao vivo não carregado.';return}
