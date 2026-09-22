@@ -8,6 +8,4 @@ const GESTOR_FIREBASE_CONFIG = {
   appId: "SEU_APP_ID"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(GESTOR_FIREBASE_CONFIG);
-}
+if (!firebase.apps.length)firebase.initializeApp(GESTOR_FIREBASE_CONFIG);
