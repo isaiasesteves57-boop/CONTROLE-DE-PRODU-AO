@@ -15,13 +15,13 @@
    Firebase — são elas que realmente protegem os dados, não o
    segredo da chave.
 ===================================================================== */
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAtFMU05aN3HDFFcJ0lMyfqK-aZnAOfvs8",
-  authDomain: "producao-a3ed1-ba5a3.firebaseapp.com",
-  projectId: "producao-a3ed1-ba5a3",
-  storageBucket: "producao-a3ed1-ba5a3.firebasestorage.app",
-  messagingSenderId: "278532740098",
-  appId: "1:278532740098:web:3ca32735a7f4708279831b"
+const firebaseConfig = {
+  apiKey: "AIzaSyDboSgv72Pm6kbAyzN72s5CvHnisQxjGts",
+  authDomain: "producao-a3ed1.firebaseapp.com",
+  projectId: "producao-a3ed1",
+  storageBucket: "producao-a3ed1.firebasestorage.app",
+  messagingSenderId: "839752522892",
+  appId: "1:839752522892:web:1f96a1d5e50b4aa3252fa9"
 };
 
 /* Coleções realmente usadas pelo Gestor d Trader hoje. Não mude estes
