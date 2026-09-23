@@ -45,9 +45,6 @@
   setTimeout(function(){ if(!document.querySelector('#root > *')) { document.getElementById("root").innerHTML = '<div style="color:#e8e0cc;padding:20px;font-family:monospace;font-size:12px;"><h2 style="color:#A6432D;">App não carregou</h2><p style="color:#6a7d6a;">Babel pode ter falhado. Verifique a conexão e recarregue.</p></div>'; } }, 15000);
 </script>
 <script type="text/babel" data-presets="react" src="./js/gestor-app.js"></script>
-<script type="text/babel" data-presets="react">
-  try { ReactDOM.createRoot(document.getElementById("root")).render(<ErroLimite><App /></ErroLimite>); }
-  catch(e) { console.error("RENDER ERROR:", e); document.getElementById("root").innerHTML=`<div style="color:#e8e0cc;padding:20px;font-family:monospace;font-size:12px;"><h2 style="color:#c6a15b;">Erro</h2><p>${e.message}</p></div>`; }
-</script>
+
 </body>
 </html>
