@@ -1,0 +1,16 @@
+{
+  "name": "Gestor d Trader",
+  "short_name": "Gestor d Trader",
+  "description": "Gestão de banca, jogos do dia, estratégias e ciclos para trading esportivo.",
+  "id": "./home.html",
+  "start_url": "./home.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1410",
+  "theme_color": "#0a1410",
+  "categories": ["finance", "sports"],
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

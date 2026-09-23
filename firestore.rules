@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function ehAdmin(uid) {
+      return exists(/databases/$(database)/documents/admins/$(uid));
+    }
+
+    function clienteAtivo(uid) {
+      return exists(/databases/$(database)/documents/clientes/$(uid)) &&
+             get(/databases/$(database)/documents/clientes/$(uid)).data.status == 'ativo';
+    }
+
+    // admins/{uid} — nunca escrito pelo app; cada usuário só pode ler o
+    // próprio documento (usado só para saber "sou admin?"). Criação e
+    // exclusão de administradores é sempre manual, pelo Console do Firebase.
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // clientes/{uid} — cada usuário cria e lê o próprio documento no
+    // primeiro login. Só o próprio dono pode criar (status inicial sempre
+    // "ativo", papel "cliente"); alterar o status/role depois só o admin
+    // pode. O admin também pode listar a coleção inteira (aba Clientes).
+    match /clientes/{uid} {
+      allow get: if request.auth != null &&
+        (request.auth.uid == uid || ehAdmin(request.auth.uid));
+      allow list: if request.auth != null && ehAdmin(request.auth.uid);
+      allow create: if request.auth != null && request.auth.uid == uid &&
+        request.resource.data.status == 'ativo' &&
+        request.resource.data.role == 'cliente';
+      allow update: if request.auth != null && ehAdmin(request.auth.uid);
+    }
+
+    // dados/{uid} — os dados do Gestor 2026 (jogos, ciclos, estratégias...)
+    // de cada usuário. Só o próprio dono acessa, e só enquanto estiver
+    // ativo (admin sempre pode, mesmo sem doc em clientes/{uid}).
+    match /dados/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid &&
+        (ehAdmin(request.auth.uid) || clienteAtivo(request.auth.uid));
+    }
+
+    // jogosPublicados — "Jogos do Dia" (Etapa 4): só o admin publica/edita/
+    // remove; qualquer cliente ativo (ou o próprio admin) pode ler em tempo
+    // real. Sincronizado via ProductionStore (js/store.js).
+    match /jogosPublicados/{id} {
+      allow read: if request.auth != null &&
+        (ehAdmin(request.auth.uid) || clienteAtivo(request.auth.uid));
+      allow write: if request.auth != null && ehAdmin(request.auth.uid);
+    }
+
+    // Coleções antigas do Controle de Produção: mantidas bloqueadas (não são
+    // mais usadas por este app, mas as regras não apagam dados — só negam
+    // acesso por aqui).
+    match /machines/{doc} { allow read, write: if false; }
+    match /products/{doc} { allow read, write: if false; }
+    match /productions/{doc} { allow read, write: if false; }
+    match /employees/{doc} { allow read, write: if false; }
+    match /orders/{doc} { allow read, write: if false; }
+    match /productionOrders/{doc} { allow read, write: if false; }
+    match /ops/{doc} { allow read, write: if false; }
+    match /config/{doc} { allow read, write: if false; }
+  }
+}

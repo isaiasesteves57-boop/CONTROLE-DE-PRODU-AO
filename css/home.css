@@ -1,0 +1,48 @@
+/* =====================================================================
+   Tela inicial (home.html) — usa variáveis do app.css
+   Tela simples e limpa para uso diário na fábrica: Gestor ou máquina.
+   ===================================================================== */
+.home-wrap{
+  min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:28px 20px;
+  background:
+    radial-gradient(1100px 560px at 50% -12%, rgba(245,180,0,.1), transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, rgba(56,189,248,.07), transparent 60%),
+    var(--bg0);
+}
+.home-box{ width:100%; max-width:380px; text-align:center; }
+.home-logo{
+  width:60px; height:60px; border-radius:16px; margin:0 auto 14px;
+  background:linear-gradient(135deg,var(--amber2),var(--amber));
+  display:flex; align-items:center; justify-content:center; color:#1a1204;
+  box-shadow:0 0 28px -4px rgba(245,180,0,.55);
+}
+.home-logo svg{ width:30px; height:30px; }
+.home-title{
+  font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:24px;
+  margin:0; text-transform:uppercase; letter-spacing:.02em;
+}
+.home-title .amber-word{ color:var(--amber); }
+.home-sub{ font-size:11px; color:var(--text-dim); margin:4px 0 22px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+
+.home-list{ display:flex; flex-direction:column; gap:10px; }
+.home-btn{
+  display:flex; align-items:center; gap:12px; width:100%;
+  background:var(--card); border:1px solid var(--border2); border-radius:14px;
+  padding:16px 18px; text-decoration:none; color:var(--text);
+  font-size:16px; font-weight:700; text-align:left;
+  transition:transform .1s ease, background .12s;
+}
+.home-btn:active{ transform:scale(.98); background:var(--card2); }
+.home-btn .hb-emoji{ font-size:22px; line-height:1; flex-shrink:0; }
+.home-btn .hb-label{ flex:1; }
+.home-btn .hb-arrow{ color:var(--steel); flex-shrink:0; }
+
+.home-btn.gestor{
+  background:linear-gradient(135deg,var(--amber2),var(--amber)); color:#1a1204;
+  border-color:transparent; box-shadow:0 6px 22px -8px rgba(245,180,0,.55);
+}
+.home-btn.gestor .hb-arrow{ color:#1a1204; }
+
+.home-foot{ margin-top:22px; font-size:10.5px; color:var(--steel); }
