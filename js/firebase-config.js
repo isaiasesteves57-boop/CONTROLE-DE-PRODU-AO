@@ -22,7 +22,7 @@ const firebaseConfig = {
   storageBucket: "producao-a3ed1.firebasestorage.app",
   messagingSenderId: "839752522892",
   appId: "1:839752522892:web:1f96a1d5e50b4aa3252fa9"
-};
+};const FIREBASE_CONFIG = firebaseConfig;
 
 /* Coleções realmente usadas pelo Gestor d Trader hoje. Não mude estes
    nomes depois que o app já estiver em uso, senão os dados "somem"
