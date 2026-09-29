@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Apontamento de Produção</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css?v=20260929">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🏭 Apontamento de Produção</div>
+  <div class="datebox" id="hoje"></div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="dashboard">📊 Painel</button>
+  <button class="tab" data-tab="pedidos">📦 Pedidos</button>
+  <button class="tab" data-tab="apontamento">✏️ Apontamento</button>
+  <button class="tab" data-tab="cadastros">⚙️ Cadastros</button>
+  <button class="tab" data-tab="registros">📈 Registros</button>
+</nav>
+
+<main id="app">
+
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="view active">
+    <div class="cards" id="cards"></div>
+    <h3>Pedidos em andamento</h3>
+    <div id="listaPedidosAndamento" class="lista-pedidos"></div>
+  </section>
+
+
+  <!-- REGISTROS E RELATÓRIOS -->
+  <section id="view-registros" class="view">
+    <div class="panel">
+      <h2>Registros de Produção</h2>
+      <div class="grid2">
+        <label>Data inicial<input type="date" id="rInicio" onchange="renderRegistros()"></label>
+        <label>Data final<input type="date" id="rFim" onchange="renderRegistros()"></label>
+        <label>Cliente<select id="rCliente" onchange="renderRegistros()"><option value="">Todos</option></select></label>
+        <label>Produto<select id="rProduto" onchange="renderRegistros()"><option value="">Todos</option></select></label>
+        <label>Tipo de furação<select id="rFuracao" onchange="renderRegistros()"><option value="">Todos</option></select></label>
+        <label>Agrupar por
+          <select id="rAgrupar" onchange="renderRegistros()">
+            <option value="produto">Produto</option>
+            <option value="cliente">Cliente</option>
+            <option value="furacao">Tipo de furação</option>
+            <option value="combo">Cliente › Produto › Furação</option>
+          </select>
+        </label>
+      </div>
+      <button class="btn btn-primary" onclick="renderRegistros()">🔎 Pesquisar</button>
+      <button class="btn" onclick="limparFiltrosRegistros()">🧹 Limpar filtros</button>
+      <button class="btn" onclick="exportarRegistrosCSV()">⬇️ Excel (CSV)</button>
+      <button class="btn" onclick="imprimirRegistros()">🖨️ Gerar card / imprimir</button>
+    </div>
+    <div id="cardsRegistros" class="cards"></div>
+    <div class="panel"><div id="listaRegistros"></div></div>
+    <div class="panel">
+      <h2>Cards de pedidos</h2>
+      <button class="btn" onclick="gerarCardsPedidos('aberto')">📦 Pedidos em andamento</button>
+      <button class="btn" onclick="gerarCardsPedidos('concluido')">✅ Pedidos concluídos</button>
+      <div id="cardsPedidosRelatorio"></div>
+    </div>
+  </section>
+
+
+  <!-- PEDIDOS -->
+  <section id="view-pedidos" class="view">
+    <div class="panel">
+      <h2>Novo Pedido</h2>
+      <form id="formPedido" class="grid2">
+        <label>Cliente (opcional)<select id="pCliente"><option value="">-- selecione --</option></select></label>
+        <label>Número da OP (opcional)<input type="text" id="pOP" inputmode="numeric" placeholder="ex: 202600145" autocomplete="off"></label>
+        <label>Produto
+          <select id="pProduto" required></select>
+        </label>
+        <label>Modelo
+          <select id="pModelo" required></select>
+        </label>
+        <label>Qtd. de folhas
+          <select id="pFolhas"></select>
+        </label>
+        <label>Tipo de furação
+          <select id="pFuracao"></select>
+        </label>
+        <label>Acabamento
+          <select id="pAcabamento"></select>
+        </label>
+        <label>Tipo de processo
+          <select id="pTipoProcesso"><option value="reto">Reto (sem escanteamento)</option><option value="escanteado">Escanteado</option></select>
+        </label>
+        <label>Quantidade solicitada<input type="number" id="pQuantidade" min="1" required></label>
+        <label>Data do pedido<input type="date" id="pData"></label>
+        <label>Prazo de entrega<input type="date" id="pPrazo"></label>
+        <label class="full">Observação<textarea id="pObs"></textarea></label>
+      </form>
+      <button class="btn btn-primary big" onclick="salvarPedido()">Salvar Pedido</button>
+    </div>
+
+    <div class="panel">
+      <h2>Importar lista de pedidos</h2>
+      <p class="meta">Uma linha por item: <code>descrição;LEITURA;PAPELARIA VAREJO</code> (pode colar direto do Excel). Gera um pedido por cliente.</p>
+      <label class="btn btn-secondary">📷 Enviar foto ou arquivo (CSV/TXT)
+        <input type="file" accept="image/*,.csv,.txt,.tsv" style="display:none" onchange="handleArquivoLista(event)"></label>
+      <button class="btn" onclick="carregarListaImagem()">📋 Lista da foto de 27/09</button>
+      <div id="importStatus" class="meta"></div>
+      <textarea id="importTexto" placeholder="Ou cole aqui a lista..."></textarea>
+      <button class="btn" onclick="previewImport(document.getElementById('importTexto').value,'texto')">Pré-visualizar</button>
+      <div id="importPreview"></div>
+    </div>
+
+    <h2>Pedidos</h2>
+    <input type="text" id="buscaPedido" placeholder="Buscar pedido, cliente ou produto..." class="busca">
+    <div id="listaPedidos" class="lista-pedidos"></div>
+  </section>
+
+  <!-- APONTAMENTO -->
+  <section id="view-apontamento" class="view">
+    <div class="panel">
+      <h2>Lançar Produção do Dia</h2>
+
+      <div class="entrada-alt">
+        <button class="btn btn-mic" id="btnMic" onclick="ouvirVoz()">🎤 Falar lançamento</button>
+        <textarea id="colarTexto" placeholder='Cole um texto, ex: "Pedido 0001 caderno universitário 160, produzi 2000, 20 com defeito"'></textarea>
+        <button class="btn" onclick="interpretarTexto()">Transformar em lançamento</button>
+        <div id="ocrBox" class="ocr-box">
+          <label class="btn btn-secondary">📷 Foto da ordem (OCR - em breve)
+            <input type="file" accept="image/*" capture="environment" id="inputFoto" style="display:none" onchange="handleFoto(event)">
+          </label>
+          <div id="ocrStatus"></div>
+        </div>
+        <div id="vozStatus" class="voz-status"></div>
+      </div>
+
+      <form id="formApontamento" class="grid2">
+        <label>Pedido (opcional)
+          <select id="aPedido"><option value="">-- nenhum --</option></select>
+        </label>
+        <label>OP (opcional)<input type="text" id="aOP" inputmode="numeric" placeholder="preenche ao escolher o pedido" autocomplete="off"></label>
+        <label>Etapa
+          <select id="aEtapa"><option value="furacao">Furação</option><option value="escanteamento">Escanteamento</option></select>
+        </label>
+        <label>Quem lançou (opcional)<input type="text" id="aUsuario" placeholder="seu nome" autocomplete="off"></label>
+        <label>Cliente (opcional)
+          <select id="aCliente"><option value="">-- nenhum --</option></select>
+        </label>
+        <label>Tipo de furação (opcional)
+          <select id="aFuracao"><option value="">-- nenhum --</option></select>
+        </label>
+        <label>Produto
+          <select id="aProduto" required></select>
+        </label>
+        <label>Modelo
+          <select id="aModelo" required></select>
+        </label>
+        <label>Quantidade produzida<input type="number" id="aProduzido" min="0" required></label>
+        <label>Quantidade defeituosa<input type="number" id="aDefeito" min="0" value="0"></label>
+        <label>Data<input type="date" id="aData"></label>
+        <label class="full">Observação<textarea id="aObs"></textarea></label>
+      </form>
+
+      <div class="resultado-calc" id="resultadoCalc"></div>
+      <button class="btn btn-primary big" onclick="salvarApontamento()">Lançar Produção</button>
+      <div id="retornoApontamento" class="retorno" style="display:none"></div>
+    </div>
+
+    <h2>Lançamentos recentes</h2>
+    <div id="listaApontamentos" class="lista-pedidos"></div>
+
+    <div class="panel">
+      <h2>Exportar</h2>
+      <button class="btn" onclick="exportarCSV()">⬇️ Exportar Excel (CSV)</button>
+      <button class="btn" onclick="exportarPDF()">🖨️ Exportar PDF</button>
+      <button class="btn" onclick="gerarCardWhatsApp()">📱 Gerar card WhatsApp</button>
+      <pre id="cardWhats" class="card-whats" style="display:none"></pre>
+    </div>
+  </section>
+
+  <!-- CADASTROS -->
+  <section id="view-cadastros" class="view">
+    <div class="cadastro-tabs" id="cadTabs">
+      <button class="ctab active" data-c="produtos">Produtos</button>
+      <button class="ctab" data-c="modelos">Modelos</button>
+      <button class="ctab" data-c="folhas">Folhas</button>
+      <button class="ctab" data-c="furacao">Furação</button>
+      <button class="ctab" data-c="acabamento">Acabamento</button>
+      <button class="ctab" data-c="clientes">Clientes</button>
+    </div>
+
+    <div id="cad-produtos" class="cad-view active">
+      <div class="panel">
+        <h3>Novo Produto</h3>
+        <div class="grid2">
+          <label>Nome<input id="cpNome"></label>
+          <label>Código interno<input id="cpCodigo"></label>
+        </div>
+        <button class="btn btn-primary" onclick="addProduto()">Adicionar</button>
+      </div>
+      <div id="listaProdutos" class="lista-cad"></div>
+    </div>
+
+    <div id="cad-modelos" class="cad-view">
+      <div class="panel">
+        <h3>Novo Modelo</h3>
+        <div class="grid2">
+          <label>Produto<select id="cmProduto"></select></label>
+          <label>Nome do modelo<input id="cmNome"></label>
+        </div>
+        <button class="btn btn-primary" onclick="addModelo()">Adicionar</button>
+      </div>
+      <div id="listaModelos" class="lista-cad"></div>
+    </div>
+
+    <div id="cad-folhas" class="cad-view">
+      <div class="panel">
+        <h3>Nova Quantidade de Folhas</h3>
+        <div class="grid2">
+          <label>Produto<select id="cfProduto"></select></label>
+          <label>Quantidade<input id="cfQtd" placeholder="ex: 160 folhas"></label>
+        </div>
+        <button class="btn btn-primary" onclick="addFolha()">Adicionar</button>
+      </div>
+      <div id="listaFolhas" class="lista-cad"></div>
+    </div>
+
+    <div id="cad-furacao" class="cad-view">
+      <div class="panel">
+        <h3>Tipo de Furação</h3>
+        <div class="grid2"><label>Nome<input id="cfurNome"></label></div>
+        <button class="btn btn-primary" onclick="addSimples('furacoes','cfurNome','listaFuracao')">Adicionar</button>
+      </div>
+      <div id="listaFuracao" class="lista-cad"></div>
+    </div>
+
+    <div id="cad-acabamento" class="cad-view">
+      <div class="panel">
+        <h3>Acabamento</h3>
+        <div class="grid2"><label>Nome<input id="cacNome"></label></div>
+        <button class="btn btn-primary" onclick="addSimples('acabamentos','cacNome','listaAcabamento')">Adicionar</button>
+      </div>
+      <div id="listaAcabamento" class="lista-cad"></div>
+    </div>
+
+    <div id="cad-clientes" class="cad-view">
+      <div class="panel">
+        <h3>Novo Cliente</h3>
+        <div class="grid2"><label>Nome<input id="cclNome" autocomplete="off"></label></div>
+        <button class="btn btn-primary" onclick="addCliente()">Adicionar</button>
+      </div>
+      <div id="listaClientes" class="lista-cad"></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast"></div>
+<div id="modalDetalhes" class="modal-overlay" style="display:none" onclick="if(event.target===this) fecharModal()">
+  <div class="modal-box panel" id="modalConteudo"></div>
+</div>
+
+<script src="import-data.js?v=20260929"></script>
+<script src="app.js?v=20260929"></script>
+</body>
+</html>
